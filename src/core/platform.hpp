@@ -4,7 +4,7 @@
 
 namespace sienna::platform {
 
-// screen size of the vita, used as the logical render size everywhere.
+// screen size of the Vita, used as the logical render size everywhere.
 inline constexpr int kScreenWidth = 960;
 inline constexpr int kScreenHeight = 544;
 
@@ -13,5 +13,8 @@ void init();
 
 // root folder for user data (books, music, notes, config), with a trailing slash.
 const std::string& dataDir();
+
+// read-only folder holding bundled resources (fonts, images), with a trailing slash.
+const std::string& resDir();
 
 }  // namespace sienna::platform

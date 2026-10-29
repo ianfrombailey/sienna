@@ -6,6 +6,7 @@ namespace sienna::platform {
 
 namespace {
 const std::string kDataDir = "ux0:data/sienna/";
+const std::string kResDir = "app0:res/";
 }
 
 void init() {
@@ -14,6 +15,10 @@ void init() {
 
 const std::string& dataDir() {
   return kDataDir;
+}
+
+const std::string& resDir() {
+  return kResDir;
 }
 
 }  // namespace sienna::platform
