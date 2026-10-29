@@ -20,6 +20,12 @@ inline constexpr gfx::Color kAccent{64, 170, 255};
 inline constexpr gfx::Color kTextPrimary{236, 239, 244};
 inline constexpr gfx::Color kTextSecondary{148, 155, 167};
 
+// face button glyph colors.
+inline constexpr gfx::Color kCross{120, 160, 230};
+inline constexpr gfx::Color kCircle{230, 105, 105};
+inline constexpr gfx::Color kSquare{220, 130, 200};
+inline constexpr gfx::Color kTriangle{90, 200, 170};
+
 // width of the visible strip of each stacked blade.
 inline constexpr float kSpineWidth = 44.f;
 // higher is snappier; used as an exponential easing rate per second.
