@@ -17,7 +17,7 @@ class Dashboard {
 public:
   Dashboard(std::vector<std::unique_ptr<Section>> sections, std::size_t selected);
 
-  void update(const Input& input, float dt);
+  void update(Input& input, float dt);
   void draw(gfx::Gfx& g);
 
 private:

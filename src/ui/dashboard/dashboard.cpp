@@ -62,10 +62,12 @@ float Dashboard::targetX(std::size_t i) const {
   return kW + static_cast<float>(i - selected_) * spine;
 }
 
-void Dashboard::update(const Input& input, float dt) {
+void Dashboard::update(Input& input, float dt) {
   if (open_) {
     if (input.pressed(Button::Start)) {
       open_ = false;
+      blades_[selected_].section->onClose();
+      input.setTextMode(false);
     } else {
       blades_[selected_].section->update(input, dt);
     }
@@ -78,6 +80,7 @@ void Dashboard::update(const Input& input, float dt) {
     }
     if (input.pressed(Button::Cross)) {
       open_ = true;
+      blades_[selected_].section->onOpen();
     }
   }
 
@@ -97,7 +100,7 @@ void Dashboard::draw(gfx::Gfx& g) {
 
 void Dashboard::drawBlade(gfx::Gfx& g, std::size_t i) {
   using gfx::fade;
-  using Weight = gfx::Text::Weight;
+  using Font = gfx::Text::Font;
 
   const Blade& blade = blades_[i];
   const float x = blade.x;
@@ -130,9 +133,9 @@ void Dashboard::drawBlade(gfx::Gfx& g, std::size_t i) {
     }
 
     const std::string label = upper(blade.section->title());
-    const SDL_FPoint size = g.text.measure(label, 15, Weight::SemiBold);
+    const SDL_FPoint size = g.text.measure(label, 15, Font::SemiBold);
     const gfx::Color color = selected ? theme::kAccent : theme::kTextSecondary;
-    g.text.drawVertical(label, 15, Weight::SemiBold, x + spine / 2.f, kH - 28.f - size.x / 2.f,
+    g.text.drawVertical(label, 15, Font::SemiBold, x + spine / 2.f, kH - 28.f - size.x / 2.f,
                         fade(color, spineAmount));
   }
 
