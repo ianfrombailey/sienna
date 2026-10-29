@@ -19,4 +19,7 @@ struct Segment {
 std::vector<Segment> wrap(Text& text, const std::string& s, int size, Text::Font font,
                           float maxWidth);
 
+// shortens text with a trailing ellipsis so it fits in maxWidth.
+std::string ellipsize(Text& text, const std::string& s, int size, Text::Font font, float maxWidth);
+
 }  // namespace sienna::gfx

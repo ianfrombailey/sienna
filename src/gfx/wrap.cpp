@@ -52,4 +52,20 @@ std::vector<Segment> wrap(Text& text, const std::string& s, int size, Text::Font
   return out;
 }
 
+std::string ellipsize(Text& text, const std::string& s, int size, Text::Font font, float maxWidth) {
+  if (text.width(s, size, font) <= maxWidth) {
+    return s;
+  }
+  const std::string dots = "\xE2\x80\xA6";
+  std::size_t end = s.size();
+  while (end > 0) {
+    end = utf8::prev(s, end);
+    const std::string candidate = s.substr(0, end) + dots;
+    if (text.width(candidate, size, font) <= maxWidth) {
+      return candidate;
+    }
+  }
+  return dots;
+}
+
 }  // namespace sienna::gfx
