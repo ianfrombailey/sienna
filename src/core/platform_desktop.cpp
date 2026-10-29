@@ -45,4 +45,31 @@ KeyboardStatus pollKeyboard(std::string& result) {
   return KeyboardStatus::Cancelled;
 }
 
+void shutdown() {}
+
+std::vector<std::string> defaultMusicFolders() {
+  return {gDataDir + "music"};
+}
+
+void tick(bool busy, bool input) {
+  (void)busy;
+  (void)input;
+}
+
+bool quitRequested() {
+  return false;
+}
+
+bool visible() {
+  return true;
+}
+
+void setScreenOn(bool on) {
+  (void)on;
+}
+
+bool screenOn() {
+  return true;
+}
+
 }  // namespace sienna::platform

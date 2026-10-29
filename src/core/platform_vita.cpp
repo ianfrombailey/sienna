@@ -1,11 +1,27 @@
 #include "core/platform.hpp"
 
+#include <psp2/appmgr.h>
 #include <psp2/common_dialog.h>
 #include <psp2/ime_dialog.h>
 #include <psp2/io/stat.h>
+#include <psp2/kernel/processmgr.h>
+#include <psp2/kernel/threadmgr.h>
 #include <psp2/libime.h>
+#include <psp2/power.h>
 
 #include <cstdint>
+#include <cstring>
+
+// SceAppMgr's application event queue, which the SDK headers leave out.
+extern "C" {
+struct AppMgrEvent {
+  int event;
+  SceUID appId;
+  char param[56];
+};
+int sceAppMgrReceiveEventNum(int* num);
+int sceAppMgrReceiveEvent(AppMgrEvent* event);
+}
 
 namespace sienna::platform {
 
@@ -18,6 +34,77 @@ SceWChar16 gTitle[SCE_IME_DIALOG_MAX_TITLE_LENGTH + 1];
 SceWChar16 gInitial[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
 SceWChar16 gInput[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
 bool gKeyboardOpen = false;
+
+// event ids from SceAppMgr. the names are missing from older headers.
+constexpr int kEventActivate = 0x10000001;
+constexpr int kEventDeactivate = 0x10000002;
+constexpr int kEventResume = 0x10000003;
+constexpr int kEventExit = 0x20000001;
+
+// the app attribute turns off system auto-sleep, so SIENNA sleeps itself when idle.
+constexpr unsigned kIdleSuspendSeconds = 10 * 60;
+
+volatile bool gQuit = false;
+volatile bool gForeground = true;
+volatile bool gScreenOn = true;
+volatile bool gBusy = false;
+volatile unsigned gLastActive = 0;
+SceUInt64 gNextPoll = 0;
+
+unsigned nowSeconds() {
+  return static_cast<unsigned>(sceKernelGetProcessTimeWide() / 1000000);
+}
+
+// runs on its own thread because the main loop slows down while SIENNA is hidden.
+int powerThread(SceSize, void*) {
+  for (;;) {
+    if (gBusy) {
+      sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
+    } else if (nowSeconds() - gLastActive > kIdleSuspendSeconds) {
+      gLastActive = nowSeconds();
+      scePowerRequestSuspend();
+    }
+    sceKernelDelayThreadCB(10 * 1000 * 1000);
+  }
+  return 0;
+}
+
+void onEvent(int event) {
+  // ignoring the exit event leaves the shell waiting on us forever.
+  if (event == kEventExit) {
+    gQuit = true;
+  } else if (event == kEventDeactivate) {
+    gForeground = false;
+  } else if (event == kEventActivate || event == kEventResume) {
+    gForeground = true;
+    gScreenOn = true;
+  }
+}
+
+void pollEvents() {
+  int n = 0;
+  if (sceAppMgrReceiveEventNum(&n) == 0) {
+    while (n-- > 0) {
+      AppMgrEvent ev;
+      if (sceAppMgrReceiveEvent(&ev) < 0) {
+        break;
+      }
+      onEvent(ev.event);
+    }
+  }
+  SceAppMgrAppState state;
+  std::memset(&state, 0, sizeof(state));
+  if (_sceAppMgrGetAppState(&state, sizeof(state), 0x03570011) < 0) {
+    return;
+  }
+  while (state.systemEventNum-- > 0) {
+    SceAppMgrSystemEvent ev;
+    if (sceAppMgrReceiveSystemEvent(&ev) < 0) {
+      break;
+    }
+    onEvent(ev.systemEvent);
+  }
+}
 
 // converts to UTF-16, truncating to max code units (plus a terminator).
 void toUtf16(const std::string& in, SceWChar16* out, std::size_t max) {
@@ -91,6 +178,57 @@ std::string fromUtf16(const SceWChar16* in) {
 
 void init() {
   sceIoMkdir("ux0:data/sienna", 0777);
+  sceIoMkdir("ux0:data/sienna/music", 0777);
+
+  // the BGM port lets audio keep going while SIENNA is in the background.
+  sceAppMgrAcquireBgmPort();
+  gLastActive = nowSeconds();
+  const SceUID thread = sceKernelCreateThread("sienna_power", powerThread, 0x10000100, 0x4000, 0, 0, nullptr);
+  if (thread >= 0) {
+    sceKernelStartThread(thread, 0, nullptr);
+  }
+}
+
+void shutdown() {
+  sceAppMgrReleaseBgmPort();
+}
+
+std::vector<std::string> defaultMusicFolders() {
+  return {"ux0:music", kDataDir + "music"};
+}
+
+void tick(bool busy, bool input) {
+  gBusy = busy;
+  if (busy || input) {
+    gLastActive = nowSeconds();
+  }
+  // events are IPC to the shell, so ten polls a second is plenty.
+  const SceUInt64 now = sceKernelGetProcessTimeWide();
+  if (now >= gNextPoll) {
+    gNextPoll = now + 100 * 1000;
+    pollEvents();
+  }
+}
+
+bool quitRequested() {
+  return gQuit;
+}
+
+bool visible() {
+  return gForeground && gScreenOn;
+}
+
+void setScreenOn(bool on) {
+  gScreenOn = on;
+  if (on) {
+    scePowerRequestDisplayOn();
+  } else {
+    scePowerRequestDisplayOff();
+  }
+}
+
+bool screenOn() {
+  return gScreenOn;
 }
 
 const std::string& dataDir() {
