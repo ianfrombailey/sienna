@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "desktop",
+      "displayName": "macOS (testing)",
+      "binaryDir": "${sourceDir}/build/desktop",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "vita",
+      "displayName": "PS Vita",
+      "binaryDir": "${sourceDir}/build/vita",
+      "toolchainFile": "$env{VITASDK}/share/vita.toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    { "name": "desktop", "configurePreset": "desktop" },
+    { "name": "vita", "configurePreset": "vita" }
+  ]
+}
