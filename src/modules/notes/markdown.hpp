@@ -13,8 +13,8 @@ namespace sienna::notes {
 // one positioned piece of the rendered preview, relative to the preview's top-left.
 struct PreviewItem {
   enum class Kind { Text, Rect, Checkbox };
-  Kind kind;
-  SDL_FRect rect;
+  Kind kind = Kind::Text;
+  SDL_FRect rect{};
   std::string text;
   int size = 0;
   gfx::Text::Font font = gfx::Text::Font::Regular;

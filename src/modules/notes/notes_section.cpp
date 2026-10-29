@@ -13,7 +13,7 @@ constexpr std::size_t kMaxTreeRows = 24;
 
 }  // namespace
 
-NotesSection::NotesSection() : browser_(store_), editor_(store_) {
+NotesSection::NotesSection() : browser_(store_) {
   refreshOverview();
 }
 

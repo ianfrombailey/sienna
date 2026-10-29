@@ -43,8 +43,6 @@ bool ctrl(const KeyPress& k) {
 
 }  // namespace
 
-Editor::Editor(NotesStore& store) : store_(store) {}
-
 void Editor::open(const std::string& path) {
   path_ = path;
   std::string data;

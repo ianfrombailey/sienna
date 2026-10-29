@@ -10,7 +10,6 @@
 #include "gfx/gfx.hpp"
 #include "gfx/wrap.hpp"
 #include "modules/notes/markdown.hpp"
-#include "modules/notes/notes_store.hpp"
 #include "ui/widgets/menu.hpp"
 #include "ui/widgets/prompt.hpp"
 
@@ -19,7 +18,7 @@ namespace sienna::notes {
 // line-by-line editor with a markdown preview mode. saves on leave and on preview.
 class Editor {
 public:
-  explicit Editor(NotesStore& store);
+  Editor() = default;
 
   void open(const std::string& path);
   void save();
@@ -50,7 +49,6 @@ private:
   void drawPreviewMode(gfx::Gfx& g, const SDL_FRect& body);
   const Wrapped& wrapped(gfx::Gfx& g, std::size_t i, float width);
 
-  NotesStore& store_;
   std::string path_;
   std::vector<std::string> lines_;
   std::vector<Wrapped> wraps_;

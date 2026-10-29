@@ -117,7 +117,9 @@ public:
   PreviewLayout out;
 
   void rect(SDL_FRect r, gfx::Color c) {
-    PreviewItem item{PreviewItem::Kind::Rect, r};
+    PreviewItem item;
+    item.kind = PreviewItem::Kind::Rect;
+    item.rect = r;
     item.color = c;
     out.items.push_back(item);
   }
@@ -125,7 +127,9 @@ public:
   void label(const std::string& s, float x, float top, float lineH, int size, Font font,
              gfx::Color c) {
     const float th = text_.lineHeight(size, font);
-    PreviewItem item{PreviewItem::Kind::Text, {x, top + (lineH - th) / 2.f, 0.f, th}, s};
+    PreviewItem item;
+    item.rect = {x, top + (lineH - th) / 2.f, 0.f, th};
+    item.text = s;
     item.size = size;
     item.font = font;
     item.color = c;
@@ -176,7 +180,7 @@ public:
 
   void codeBlock(const std::vector<std::string>& lines) {
     std::vector<std::string> rows;
-    for (std::string l : lines) {
+    for (const std::string& l : lines) {
       std::string expanded;
       for (char c : l) {
         expanded += c == '\t' ? std::string("    ") : std::string(1, c);
@@ -331,8 +335,9 @@ PreviewLayout layoutMarkdown(gfx::Text& text, const std::vector<std::string>& li
       const bool checked = t[3] != ' ';
       const float top = b.y;
       const std::size_t boxIndex = b.out.items.size();
-      PreviewItem box{PreviewItem::Kind::Checkbox,
-                      {x0 + 2.f, top + (kBodyLine - kBox) / 2.f, kBox, kBox}};
+      PreviewItem box;
+      box.kind = PreviewItem::Kind::Checkbox;
+      box.rect = {x0 + 2.f, top + (kBodyLine - kBox) / 2.f, kBox, kBox};
       box.checked = checked;
       box.line = i;
       b.out.items.push_back(box);
