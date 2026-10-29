@@ -14,8 +14,12 @@ public:
 
   virtual const char* title() const = 0;
 
+  // called when the section is opened fullscreen and when START returns to the dashboard.
+  virtual void onOpen() {}
+  virtual void onClose() {}
+
   // only called while the section is open fullscreen. START is reserved for the dashboard.
-  virtual void update(const Input& input, float dt) {
+  virtual void update(Input& input, float dt) {
     (void)input;
     (void)dt;
   }
