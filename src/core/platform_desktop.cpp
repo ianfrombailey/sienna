@@ -33,4 +33,16 @@ const std::string& resDir() {
   return gResDir;
 }
 
+bool openKeyboard(const std::string& title, const std::string& initial, bool multiline) {
+  (void)title;
+  (void)initial;
+  (void)multiline;
+  return false;
+}
+
+KeyboardStatus pollKeyboard(std::string& result) {
+  (void)result;
+  return KeyboardStatus::Cancelled;
+}
+
 }  // namespace sienna::platform
