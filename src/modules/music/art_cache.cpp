@@ -7,6 +7,7 @@
 
 #include "audio/decoder.hpp"
 #include "core/fs.hpp"
+#include "modules/music/library.hpp"
 
 namespace sienna::music {
 
@@ -58,6 +59,20 @@ SDL_Surface* loadCover(const std::string& trackPath) {
     for (const char* name : kNames) {
       if (stem == name) {
         return scaled(IMG_Load(fs::join(dir, e.name).c_str()));
+      }
+    }
+  }
+  // albums often embed art in only some of their files, so borrow a sibling's.
+  int tried = 0;
+  for (const fs::Entry& e : fs::list(dir)) {
+    const std::string path = fs::join(dir, e.name);
+    if (e.isDir || path == trackPath || !Library::isAudio(e.name) || ++tried > 8) {
+      continue;
+    }
+    if (audio::readCoverArt(path, bytes)) {
+      SDL_RWops* rw = SDL_RWFromConstMem(bytes.data(), static_cast<int>(bytes.size()));
+      if (SDL_Surface* s = IMG_Load_RW(rw, 1)) {
+        return scaled(s);
       }
     }
   }

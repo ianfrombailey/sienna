@@ -48,6 +48,16 @@ bool isDir(const std::string& path) {
   return stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
 }
 
+bool stat(const std::string& path, long long& mtime, long long& size) {
+  struct stat st;
+  if (::stat(path.c_str(), &st) != 0) {
+    return false;
+  }
+  mtime = static_cast<long long>(st.st_mtime);
+  size = static_cast<long long>(st.st_size);
+  return true;
+}
+
 std::vector<Entry> list(const std::string& dir) {
   std::vector<Entry> entries;
   DIR* d = opendir(dir.c_str());

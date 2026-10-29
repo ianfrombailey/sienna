@@ -18,6 +18,8 @@ std::string extension(const std::string& name);  // lowercase, without the dot
 
 bool exists(const std::string& path);
 bool isDir(const std::string& path);
+// modification time and size, for spotting changed files.
+bool stat(const std::string& path, long long& mtime, long long& size);
 // skips . and .. and returns entries in no particular order.
 std::vector<Entry> list(const std::string& dir);
 

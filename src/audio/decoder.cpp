@@ -18,6 +18,12 @@ namespace sienna::audio {
 
 namespace {
 
+// ffmpeg warns about harmless quirks in real-world files; only errors are worth printing.
+[[maybe_unused]] const bool kQuietLogs = [] {
+  av_log_set_level(AV_LOG_ERROR);
+  return true;
+}();
+
 // tags live on the container for most formats, but on the stream for ogg and opus.
 std::string tag(AVFormatContext* fmt, int stream, const char* key) {
   const AVDictionaryEntry* e = av_dict_get(fmt->metadata, key, nullptr, 0);

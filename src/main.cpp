@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <SDL_image.h>
 
 #include <memory>
 #include <vector>
@@ -6,9 +7,11 @@
 #include "core/input.hpp"
 #include "core/platform.hpp"
 #include "gfx/gfx.hpp"
+#include "modules/music/music_section.hpp"
 #include "modules/notes/notes_section.hpp"
 #include "modules/placeholder_section.hpp"
 #include "ui/dashboard/dashboard.hpp"
+#include "ui/now_playing.hpp"
 #include "ui/theme.hpp"
 
 using namespace sienna;
@@ -58,13 +61,14 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG);
   SDL_Log("SIENNA started, data dir: %s", platform::dataDir().c_str());
 
   {
     std::vector<std::unique_ptr<Section>> sections;
     sections.push_back(std::make_unique<PlaceholderSection>("Settings"));
     sections.push_back(std::make_unique<notes::NotesSection>());
-    sections.push_back(std::make_unique<PlaceholderSection>("Music"));
+    sections.push_back(std::make_unique<music::MusicSection>());
     sections.push_back(std::make_unique<PlaceholderSection>("Reader"));
     sections.push_back(std::make_unique<PlaceholderSection>("Streaming"));
     // opens on music.
@@ -91,7 +95,22 @@ int main(int argc, char* argv[]) {
       }
       input.update(dt);
 
+      // any press wakes a screen that was turned off for listening.
+      if (!platform::screenOn() && input.anyPressed()) {
+        platform::setScreenOn(true);
+        input.beginFrame();
+      }
+
       dashboard.update(input, dt);
+      platform::tick(nowPlaying().playing, input.anyPressed());
+      if (platform::quitRequested()) {
+        break;
+      }
+      // in the background or with the screen off there's nothing to draw.
+      if (!platform::visible()) {
+        SDL_Delay(50);
+        continue;
+      }
 
       const gfx::Color bg = theme::kBackground;
       SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
@@ -102,6 +121,8 @@ int main(int argc, char* argv[]) {
   }
 
   g.text.shutdown();
+  IMG_Quit();
+  platform::shutdown();
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();
