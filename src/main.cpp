@@ -6,6 +6,7 @@
 #include "core/input.hpp"
 #include "core/platform.hpp"
 #include "gfx/gfx.hpp"
+#include "modules/notes/notes_section.hpp"
 #include "modules/placeholder_section.hpp"
 #include "ui/dashboard/dashboard.hpp"
 #include "ui/theme.hpp"
@@ -62,7 +63,7 @@ int main(int argc, char* argv[]) {
   {
     std::vector<std::unique_ptr<Section>> sections;
     sections.push_back(std::make_unique<PlaceholderSection>("Settings"));
-    sections.push_back(std::make_unique<PlaceholderSection>("Notes"));
+    sections.push_back(std::make_unique<notes::NotesSection>());
     sections.push_back(std::make_unique<PlaceholderSection>("Music"));
     sections.push_back(std::make_unique<PlaceholderSection>("Reader"));
     sections.push_back(std::make_unique<PlaceholderSection>("Streaming"));
@@ -73,6 +74,13 @@ int main(int argc, char* argv[]) {
     Uint64 last = SDL_GetPerformanceCounter();
     bool running = true;
     while (running) {
+      const Uint64 now = SDL_GetPerformanceCounter();
+      float dt = static_cast<float>(now - last) / static_cast<float>(SDL_GetPerformanceFrequency());
+      last = now;
+      if (dt > 0.1f) {
+        dt = 0.1f;
+      }
+
       input.beginFrame();
       SDL_Event event;
       while (SDL_PollEvent(&event)) {
@@ -81,13 +89,7 @@ int main(int argc, char* argv[]) {
         }
         input.handleEvent(event);
       }
-
-      const Uint64 now = SDL_GetPerformanceCounter();
-      float dt = static_cast<float>(now - last) / static_cast<float>(SDL_GetPerformanceFrequency());
-      last = now;
-      if (dt > 0.1f) {
-        dt = 0.1f;
-      }
+      input.update(dt);
 
       dashboard.update(input, dt);
 
