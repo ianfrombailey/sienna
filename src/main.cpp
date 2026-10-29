@@ -1,6 +1,14 @@
 #include <SDL.h>
 
+#include <memory>
+#include <vector>
+
+#include "core/input.hpp"
 #include "core/platform.hpp"
+#include "gfx/gfx.hpp"
+#include "modules/placeholder_section.hpp"
+#include "ui/dashboard/dashboard.hpp"
+#include "ui/theme.hpp"
 
 using namespace sienna;
 
@@ -33,23 +41,65 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   SDL_RenderSetLogicalSize(renderer, platform::kScreenWidth, platform::kScreenHeight);
+  SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+  int outputW = 0;
+  int outputH = 0;
+  SDL_GetRendererOutputSize(renderer, &outputW, &outputH);
+  const float scale = static_cast<float>(outputW) / platform::kScreenWidth;
+
+  gfx::Gfx g;
+  g.renderer = renderer;
+  if (!g.text.init(renderer, platform::resDir() + "fonts/", scale)) {
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    return 1;
+  }
 
   SDL_Log("SIENNA started, data dir: %s", platform::dataDir().c_str());
 
-  bool running = true;
-  while (running) {
-    SDL_Event event;
-    while (SDL_PollEvent(&event)) {
-      if (event.type == SDL_QUIT) {
-        running = false;
-      }
-    }
+  {
+    std::vector<std::unique_ptr<Section>> sections;
+    sections.push_back(std::make_unique<PlaceholderSection>("Settings"));
+    sections.push_back(std::make_unique<PlaceholderSection>("Notes"));
+    sections.push_back(std::make_unique<PlaceholderSection>("Music"));
+    sections.push_back(std::make_unique<PlaceholderSection>("Reader"));
+    sections.push_back(std::make_unique<PlaceholderSection>("Streaming"));
+    // opens on music.
+    Dashboard dashboard(std::move(sections), 2);
 
-    SDL_SetRenderDrawColor(renderer, 18, 18, 24, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderPresent(renderer);
+    Input input;
+    Uint64 last = SDL_GetPerformanceCounter();
+    bool running = true;
+    while (running) {
+      input.beginFrame();
+      SDL_Event event;
+      while (SDL_PollEvent(&event)) {
+        if (event.type == SDL_QUIT) {
+          running = false;
+        }
+        input.handleEvent(event);
+      }
+
+      const Uint64 now = SDL_GetPerformanceCounter();
+      float dt = static_cast<float>(now - last) / static_cast<float>(SDL_GetPerformanceFrequency());
+      last = now;
+      if (dt > 0.1f) {
+        dt = 0.1f;
+      }
+
+      dashboard.update(input, dt);
+
+      const gfx::Color bg = theme::kBackground;
+      SDL_SetRenderDrawColor(renderer, bg.r, bg.g, bg.b, 255);
+      SDL_RenderClear(renderer);
+      dashboard.draw(g);
+      SDL_RenderPresent(renderer);
+    }
   }
 
+  g.text.shutdown();
   SDL_DestroyRenderer(renderer);
   SDL_DestroyWindow(window);
   SDL_Quit();

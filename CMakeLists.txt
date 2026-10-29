@@ -11,9 +11,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(SDL2 REQUIRED)
+find_package(SDL2_ttf REQUIRED)
 
 set(SIENNA_SOURCES
   src/main.cpp
+  src/core/input.cpp
+  src/gfx/draw.cpp
+  src/gfx/text.cpp
+  src/ui/now_playing.cpp
+  src/ui/dashboard/dashboard.cpp
+  src/modules/placeholder_section.cpp
 )
 
 if(VITA)
@@ -27,7 +34,11 @@ target_include_directories(sienna PRIVATE src)
 target_compile_options(sienna PRIVATE -Wall -Wextra)
 
 if(VITA)
-  target_link_libraries(sienna PRIVATE SDL2::SDL2main SDL2::SDL2-static)
+  # static freetype doesn't carry its own dependencies, so they're listed after it.
+  target_link_libraries(sienna PRIVATE
+    SDL2_ttf::SDL2_ttf-static SDL2::SDL2main SDL2::SDL2-static
+    freetype png bz2 z
+  )
 
   set(VITA_APP_NAME "SIENNA")
   set(VITA_TITLEID "SIEN00001")
@@ -41,10 +52,15 @@ if(VITA)
     FILE sce_sys/livearea/contents/bg.png sce_sys/livearea/contents/bg.png
     FILE sce_sys/livearea/contents/startup.png sce_sys/livearea/contents/startup.png
     FILE sce_sys/livearea/contents/template.xml sce_sys/livearea/contents/template.xml
+    FILE res res
   )
 else()
   if(TARGET SDL2::SDL2main)
     target_link_libraries(sienna PRIVATE SDL2::SDL2main)
   endif()
-  target_link_libraries(sienna PRIVATE SDL2::SDL2)
+  target_link_libraries(sienna PRIVATE SDL2_ttf::SDL2_ttf SDL2::SDL2)
+
+  add_custom_command(TARGET sienna POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/res $<TARGET_FILE_DIR:sienna>/res
+  )
 endif()
