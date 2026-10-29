@@ -46,6 +46,8 @@ public:
   // true only on the frame the button went down.
   bool pressed(Button b) const { return pressed_[static_cast<int>(b)]; }
   bool held(Button b) const { return held_[static_cast<int>(b)]; }
+  // any button, key or tap this frame.
+  bool anyPressed() const;
   // like pressed, but keeps firing while held. for moving through lists.
   bool repeated(Button b) const { return repeated_[static_cast<int>(b)]; }
 

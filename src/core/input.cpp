@@ -169,6 +169,15 @@ void Input::handleEvent(const SDL_Event& event) {
   }
 }
 
+bool Input::anyPressed() const {
+  for (bool p : pressed_) {
+    if (p) {
+      return true;
+    }
+  }
+  return !keys_.empty() || !taps_.empty();
+}
+
 void Input::update(float dt) {
   for (int i = 0; i < kCount; ++i) {
     repeated_[i] = pressed_[i];
