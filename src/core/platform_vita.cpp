@@ -9,9 +9,12 @@
 #include <psp2/libime.h>
 #include <psp2/power.h>
 
+#include <SDL.h>
+
 #include <cstdint>
 #include <cstring>
 
+#ifdef SIENNA_BACKGROUND
 // SceAppMgr's application event queue, which the SDK headers leave out.
 extern "C" {
 struct AppMgrEvent {
@@ -22,6 +25,7 @@ struct AppMgrEvent {
 int sceAppMgrReceiveEventNum(int* num);
 int sceAppMgrReceiveEvent(AppMgrEvent* event);
 }
+#endif
 
 namespace sienna::platform {
 
@@ -35,6 +39,10 @@ SceWChar16 gInitial[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
 SceWChar16 gInput[SCE_IME_DIALOG_MAX_TEXT_LENGTH + 1];
 bool gKeyboardOpen = false;
 
+volatile bool gScreenOn = true;
+volatile bool gBusy = false;
+
+#ifdef SIENNA_BACKGROUND
 // event ids from SceAppMgr. the names are missing from older headers.
 constexpr int kEventActivate = 0x10000001;
 constexpr int kEventDeactivate = 0x10000002;
@@ -46,8 +54,6 @@ constexpr unsigned kIdleSuspendSeconds = 10 * 60;
 
 volatile bool gQuit = false;
 volatile bool gForeground = true;
-volatile bool gScreenOn = true;
-volatile bool gBusy = false;
 volatile unsigned gLastActive = 0;
 SceUInt64 gNextPoll = 0;
 
@@ -55,21 +61,8 @@ unsigned nowSeconds() {
   return static_cast<unsigned>(sceKernelGetProcessTimeWide() / 1000000);
 }
 
-// runs on its own thread because the main loop slows down while SIENNA is hidden.
-int powerThread(SceSize, void*) {
-  for (;;) {
-    if (gBusy) {
-      sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
-    } else if (nowSeconds() - gLastActive > kIdleSuspendSeconds) {
-      gLastActive = nowSeconds();
-      scePowerRequestSuspend();
-    }
-    sceKernelDelayThreadCB(10 * 1000 * 1000);
-  }
-  return 0;
-}
-
 void onEvent(int event) {
+  SDL_Log("appmgr event 0x%08x", static_cast<unsigned>(event));
   // ignoring the exit event leaves the shell waiting on us forever.
   if (event == kEventExit) {
     gQuit = true;
@@ -104,6 +97,24 @@ void pollEvents() {
     }
     onEvent(ev.systemEvent);
   }
+}
+#endif
+
+// keeps the Vita awake while music plays, even with the screen off.
+int powerThread(SceSize, void*) {
+  for (;;) {
+    if (gBusy) {
+      sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
+    }
+#ifdef SIENNA_BACKGROUND
+    else if (nowSeconds() - gLastActive > kIdleSuspendSeconds) {
+      gLastActive = nowSeconds();
+      scePowerRequestSuspend();
+    }
+#endif
+    sceKernelDelayThreadCB(10 * 1000 * 1000);
+  }
+  return 0;
 }
 
 // converts to UTF-16, truncating to max code units (plus a terminator).
@@ -180,9 +191,12 @@ void init() {
   sceIoMkdir("ux0:data/sienna", 0777);
   sceIoMkdir("ux0:data/sienna/music", 0777);
 
+#ifdef SIENNA_BACKGROUND
   // the BGM port lets audio keep going while SIENNA is in the background.
-  sceAppMgrAcquireBgmPort();
+  SDL_Log("background build: acquire bgm port -> 0x%08x",
+          static_cast<unsigned>(sceAppMgrAcquireBgmPort()));
   gLastActive = nowSeconds();
+#endif
   const SceUID thread = sceKernelCreateThread("sienna_power", powerThread, 0x10000100, 0x4000, 0, 0, nullptr);
   if (thread >= 0) {
     sceKernelStartThread(thread, 0, nullptr);
@@ -190,7 +204,9 @@ void init() {
 }
 
 void shutdown() {
+#ifdef SIENNA_BACKGROUND
   sceAppMgrReleaseBgmPort();
+#endif
 }
 
 std::vector<std::string> defaultMusicFolders() {
@@ -199,6 +215,7 @@ std::vector<std::string> defaultMusicFolders() {
 
 void tick(bool busy, bool input) {
   gBusy = busy;
+#ifdef SIENNA_BACKGROUND
   if (busy || input) {
     gLastActive = nowSeconds();
   }
@@ -208,14 +225,25 @@ void tick(bool busy, bool input) {
     gNextPoll = now + 100 * 1000;
     pollEvents();
   }
+#else
+  (void)input;
+#endif
 }
 
 bool quitRequested() {
+#ifdef SIENNA_BACKGROUND
   return gQuit;
+#else
+  return false;
+#endif
 }
 
 bool visible() {
+#ifdef SIENNA_BACKGROUND
   return gForeground && gScreenOn;
+#else
+  return gScreenOn;
+#endif
 }
 
 void setScreenOn(bool on) {

@@ -1,6 +1,8 @@
 #include "audio/output.hpp"
 
+#include <SDL.h>
 #include <psp2/audioout.h>
+#include <psp2/kernel/threadmgr.h>
 
 #include <atomic>
 #include <thread>
@@ -20,21 +22,43 @@ void run(int port) {
   std::vector<std::int16_t> buffers[2] = {std::vector<std::int16_t>(kGrain * kChannels),
                                           std::vector<std::int16_t>(kGrain * kChannels)};
   int which = 0;
+  bool reported = false;
   while (gRunning) {
     gFill(buffers[which].data(), kGrain);
     // blocks until the hardware wants more, which paces this thread.
-    sceAudioOutOutput(port, buffers[which].data());
+    const int r = sceAudioOutOutput(port, buffers[which].data());
+    if (r < 0) {
+      if (!reported) {
+        SDL_Log("sceAudioOutOutput failed: 0x%08x", static_cast<unsigned>(r));
+        reported = true;
+      }
+      // don't spin the CPU if the port stops accepting audio.
+      sceKernelDelayThread(kGrain * 1000000 / kSampleRate);
+    }
     which ^= 1;
   }
   sceAudioOutOutput(port, nullptr);
   sceAudioOutReleasePort(port);
 }
 
+int openPort(SceAudioOutPortType type, const char* name) {
+  const int port = sceAudioOutOpenPort(type, kGrain, kSampleRate, SCE_AUDIO_OUT_MODE_STEREO);
+  SDL_Log("audio: %s port open -> 0x%08x", name, static_cast<unsigned>(port));
+  return port;
+}
+
 }  // namespace
 
 bool openOutput(FillFn fill) {
-  const int port = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, kGrain, kSampleRate,
-                                       SCE_AUDIO_OUT_MODE_STEREO);
+#ifdef SIENNA_BACKGROUND
+  // the BGM port keeps playing while SIENNA is in the background.
+  int port = openPort(SCE_AUDIO_OUT_PORT_TYPE_BGM, "bgm");
+  if (port < 0) {
+    port = openPort(SCE_AUDIO_OUT_PORT_TYPE_MAIN, "main");
+  }
+#else
+  const int port = openPort(SCE_AUDIO_OUT_PORT_TYPE_MAIN, "main");
+#endif
   if (port < 0) {
     return false;
   }

@@ -1,5 +1,7 @@
 #include "modules/music/library.hpp"
 
+#include <SDL.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
@@ -130,6 +132,8 @@ void Library::scan(std::vector<std::string> folders, std::unordered_map<std::str
     }
   }
   if (!stop_) {
+    SDL_Log("music scan: %d songs in %d folders", static_cast<int>(found.size()),
+            static_cast<int>(folders.size()));
     saveCache(found);
     std::lock_guard<std::mutex> lock(resultMutex_);
     result_.clear();

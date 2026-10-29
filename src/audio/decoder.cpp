@@ -1,5 +1,7 @@
 #include "audio/decoder.hpp"
 
+#include <SDL.h>
+
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -37,9 +39,23 @@ int leadingNumber(const std::string& s) {
   return s.empty() ? 0 : std::atoi(s.c_str());
 }
 
-AVFormatContext* openFormat(const std::string& path) {
+// ffmpeg reads "ux0:" as a protocol name, so paths go through the file protocol explicitly.
+AVFormatContext* openInput(const std::string& path) {
   AVFormatContext* fmt = nullptr;
-  if (avformat_open_input(&fmt, path.c_str(), nullptr, nullptr) < 0) {
+  const std::string url = "file:" + path;
+  const int r = avformat_open_input(&fmt, url.c_str(), nullptr, nullptr);
+  if (r < 0) {
+    char err[128];
+    av_strerror(r, err, sizeof(err));
+    SDL_Log("can't open %s: %s", path.c_str(), err);
+    return nullptr;
+  }
+  return fmt;
+}
+
+AVFormatContext* openFormat(const std::string& path) {
+  AVFormatContext* fmt = openInput(path);
+  if (!fmt) {
     return nullptr;
   }
   if (avformat_find_stream_info(fmt, nullptr) < 0) {
@@ -75,8 +91,8 @@ bool readInfo(const std::string& path, TrackInfo& out) {
 }
 
 bool readCoverArt(const std::string& path, std::vector<std::uint8_t>& out) {
-  AVFormatContext* fmt = nullptr;
-  if (avformat_open_input(&fmt, path.c_str(), nullptr, nullptr) < 0) {
+  AVFormatContext* fmt = openInput(path);
+  if (!fmt) {
     return false;
   }
   bool found = false;
@@ -105,12 +121,14 @@ bool Decoder::open(const std::string& path) {
   const AVCodec* codec = nullptr;
   stream_ = av_find_best_stream(fmt_, AVMEDIA_TYPE_AUDIO, -1, -1, &codec, 0);
   if (stream_ < 0 || !codec) {
+    SDL_Log("no playable audio stream in %s", path.c_str());
     close();
     return false;
   }
   codec_ = avcodec_alloc_context3(codec);
   avcodec_parameters_to_context(codec_, fmt_->streams[stream_]->codecpar);
   if (avcodec_open2(codec_, codec, nullptr) < 0) {
+    SDL_Log("can't start the %s decoder for %s", codec->name, path.c_str());
     close();
     return false;
   }

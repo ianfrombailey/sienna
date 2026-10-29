@@ -18,10 +18,20 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "vita-background",
+      "displayName": "PS Vita (experimental background music)",
+      "inherits": "vita",
+      "binaryDir": "${sourceDir}/build/vita-background",
+      "cacheVariables": {
+        "SIENNA_VITA_BACKGROUND": "ON"
+      }
     }
   ],
   "buildPresets": [
     { "name": "desktop", "configurePreset": "desktop" },
-    { "name": "vita", "configurePreset": "vita" }
+    { "name": "vita", "configurePreset": "vita" },
+    { "name": "vita-background", "configurePreset": "vita-background" }
   ]
 }

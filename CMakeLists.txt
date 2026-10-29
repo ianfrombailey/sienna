@@ -77,9 +77,15 @@ if(VITA)
   set(VITA_APP_NAME "SIENNA")
   set(VITA_TITLEID "SIEN00001")
   set(VITA_VERSION "01.00")
-  # keep running when the user leaves the app (0x8) and skip system auto-sleep (0x80000),
-  # so music plays on in the background. 0x8000 is the SDK default.
-  set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE=0x88008")
+
+  # experimental: music keeps playing after leaving SIENNA. off until it stops freezing the Vita.
+  option(SIENNA_VITA_BACKGROUND "keep running in the background on the Vita" OFF)
+  if(SIENNA_VITA_BACKGROUND)
+    target_compile_definitions(sienna PRIVATE SIENNA_BACKGROUND)
+    # keep running when the user leaves the app (0x8) and skip system auto-sleep (0x80000).
+    # 0x8000 is the SDK default.
+    set(VITA_MKSFOEX_FLAGS "${VITA_MKSFOEX_FLAGS} -d ATTRIBUTE=0x88008")
+  endif()
 
   vita_create_self(eboot.bin sienna)
   vita_create_vpk(sienna.vpk ${VITA_TITLEID} eboot.bin
