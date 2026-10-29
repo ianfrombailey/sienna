@@ -6,7 +6,8 @@
       "displayName": "macOS (testing)",
       "binaryDir": "${sourceDir}/build/desktop",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {

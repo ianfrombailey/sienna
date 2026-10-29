@@ -15,12 +15,23 @@ find_package(SDL2_ttf REQUIRED)
 
 set(SIENNA_SOURCES
   src/main.cpp
+  src/core/fs.cpp
   src/core/input.cpp
   src/gfx/draw.cpp
   src/gfx/text.cpp
+  src/gfx/wrap.cpp
   src/ui/now_playing.cpp
   src/ui/dashboard/dashboard.cpp
+  src/ui/widgets/hints.cpp
+  src/ui/widgets/menu.cpp
+  src/ui/widgets/panel.cpp
+  src/ui/widgets/prompt.cpp
   src/modules/placeholder_section.cpp
+  src/modules/notes/browser.cpp
+  src/modules/notes/editor.cpp
+  src/modules/notes/markdown.cpp
+  src/modules/notes/notes_section.cpp
+  src/modules/notes/notes_store.cpp
 )
 
 if(VITA)
