@@ -18,6 +18,12 @@ public:
   virtual void onOpen() {}
   virtual void onClose() {}
 
+  // called every frame for every section, open or not, even while SIENNA is in the background.
+  virtual void tick(float dt) { (void)dt; }
+
+  // the dashboard's now-playing bar is hidden on sections that show their own.
+  virtual bool showsNowPlayingBar() const { return true; }
+
   // only called while the section is open fullscreen. START is reserved for the dashboard.
   virtual void update(Input& input, float dt) {
     (void)input;
