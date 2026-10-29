@@ -18,6 +18,8 @@ constexpr float kLine = 26.f;
 constexpr float kGutter = 44.f;
 constexpr float kHeader = 66.f;
 constexpr float kFooter = 48.f;
+constexpr float kPreviewPadX = 12.f;
+constexpr float kPreviewPadY = 8.f;
 
 std::vector<std::string> splitLines(const std::string& text) {
   std::vector<std::string> lines;
@@ -258,7 +260,8 @@ void Editor::handleKeyboard(Input& input) {
 }
 
 void Editor::updatePreview(Input& input) {
-  const float maxScroll = std::max(0.f, preview_.height - previewViewH_);
+  const float viewH = previewView_.h;
+  const float maxScroll = std::max(0.f, preview_.height + kPreviewPadY - viewH);
   if (input.repeated(Button::Up)) {
     previewScroll_ -= 40.f;
   }
@@ -266,19 +269,19 @@ void Editor::updatePreview(Input& input) {
     previewScroll_ += 40.f;
   }
   if (input.repeated(Button::L)) {
-    previewScroll_ -= previewViewH_ * 0.9f;
+    previewScroll_ -= viewH * 0.9f;
   }
   if (input.repeated(Button::R)) {
-    previewScroll_ += previewViewH_ * 0.9f;
+    previewScroll_ += viewH * 0.9f;
   }
   previewScroll_ = std::clamp(previewScroll_, 0.f, maxScroll);
 
   for (const SDL_FPoint& tap : input.taps()) {
-    const float x = tap.x - previewOrigin_.x;
-    const float y = tap.y - previewOrigin_.y + previewScroll_;
-    if (tap.y < previewOrigin_.y || tap.y > previewOrigin_.y + previewViewH_) {
+    if (tap.y < previewView_.y || tap.y > previewView_.y + viewH) {
       continue;
     }
+    const float x = tap.x - (previewView_.x + kPreviewPadX);
+    const float y = tap.y - (previewView_.y + kPreviewPadY) + previewScroll_;
     for (const PreviewItem& item : preview_.items) {
       if (item.kind != PreviewItem::Kind::Checkbox) {
         continue;
@@ -447,19 +450,19 @@ void Editor::drawEdit(gfx::Gfx& g, const SDL_FRect& body) {
 }
 
 void Editor::drawPreviewMode(gfx::Gfx& g, const SDL_FRect& body) {
-  const float width = body.w - 24.f;
+  const float width = body.w - 2.f * kPreviewPadX;
   if (previewStale_ || preview_.width != width) {
     preview_ = layoutMarkdown(g.text, lines_, width);
     previewStale_ = false;
   }
-  previewOrigin_ = {body.x + 12.f, body.y, width, body.h};
-  previewViewH_ = body.h;
-  previewScroll_ = std::clamp(previewScroll_, 0.f, std::max(0.f, preview_.height - body.h));
+  previewView_ = body;
+  previewScroll_ =
+      std::clamp(previewScroll_, 0.f, std::max(0.f, preview_.height + kPreviewPadY - body.h));
 
   const SDL_Rect clip{static_cast<int>(body.x), static_cast<int>(body.y), static_cast<int>(body.w),
                       static_cast<int>(body.h)};
   SDL_RenderSetClipRect(g.renderer, &clip);
-  drawPreview(g, preview_, previewOrigin_.x, body.y + 8.f - previewScroll_, body.y,
+  drawPreview(g, preview_, body.x + kPreviewPadX, body.y + kPreviewPadY - previewScroll_, body.y,
               body.y + body.h);
   SDL_RenderSetClipRect(g.renderer, nullptr);
 }

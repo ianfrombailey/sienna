@@ -4,6 +4,20 @@
 
 namespace sienna::gfx {
 
+namespace {
+
+const char* fileFor(Text::Font font) {
+  switch (font) {
+    case Text::Font::SemiBold: return "Inter-SemiBold.ttf";
+    case Text::Font::Italic: return "Inter-Italic.ttf";
+    case Text::Font::SemiBoldItalic: return "Inter-SemiBoldItalic.ttf";
+    case Text::Font::Mono: return "JetBrainsMono-Regular.ttf";
+    default: return "Inter-Regular.ttf";
+  }
+}
+
+}  // namespace
+
 bool Text::init(SDL_Renderer* renderer, const std::string& fontDir, float scale) {
   if (TTF_Init() != 0) {
     SDL_Log("TTF_Init failed: %s", TTF_GetError());
@@ -27,13 +41,12 @@ void Text::shutdown() {
   TTF_Quit();
 }
 
-TTF_Font* Text::font(int size, Weight weight) {
-  const auto key = std::make_pair(size, weight);
+TTF_Font* Text::font(int size, Font font) {
+  const auto key = std::make_pair(size, font);
   if (auto it = fonts_.find(key); it != fonts_.end()) {
     return it->second;
   }
-  const char* file = weight == Weight::SemiBold ? "Inter-SemiBold.ttf" : "Inter-Regular.ttf";
-  const std::string path = fontDir_ + file;
+  const std::string path = fontDir_ + fileFor(font);
   TTF_Font* f = TTF_OpenFont(path.c_str(), static_cast<int>(std::lround(size * scale_)));
   if (!f) {
     SDL_Log("TTF_OpenFont failed for %s: %s", path.c_str(), TTF_GetError());
@@ -42,16 +55,16 @@ TTF_Font* Text::font(int size, Weight weight) {
   return f;
 }
 
-const Text::Entry* Text::entry(const std::string& text, int size, Weight weight) {
+const Text::Entry* Text::entry(const std::string& text, int size, Font font) {
   if (text.empty()) {
     return nullptr;
   }
   const std::string key =
-      std::to_string(static_cast<int>(weight)) + "|" + std::to_string(size) + "|" + text;
+      std::to_string(static_cast<int>(font)) + "|" + std::to_string(size) + "|" + text;
   if (auto it = cache_.find(key); it != cache_.end()) {
     return &it->second;
   }
-  TTF_Font* f = font(size, weight);
+  TTF_Font* f = this->font(size, font);
   if (!f) {
     return nullptr;
   }
@@ -70,17 +83,31 @@ const Text::Entry* Text::entry(const std::string& text, int size, Weight weight)
   return &cache_.emplace(key, e).first->second;
 }
 
-SDL_FPoint Text::measure(const std::string& text, int size, Weight weight) {
-  const Entry* e = entry(text, size, weight);
+SDL_FPoint Text::measure(const std::string& text, int size, Font font) {
+  const Entry* e = entry(text, size, font);
   if (!e) {
     return {0.f, 0.f};
   }
   return {e->w / scale_, e->h / scale_};
 }
 
-void Text::draw(const std::string& text, int size, Weight weight, float x, float y, Color color,
+float Text::width(const std::string& text, int size, Font font) {
+  TTF_Font* f = this->font(size, font);
+  int w = 0;
+  if (!f || text.empty() || TTF_SizeUTF8(f, text.c_str(), &w, nullptr) != 0) {
+    return 0.f;
+  }
+  return w / scale_;
+}
+
+float Text::lineHeight(int size, Font font) {
+  TTF_Font* f = this->font(size, font);
+  return f ? TTF_FontHeight(f) / scale_ : static_cast<float>(size);
+}
+
+void Text::draw(const std::string& text, int size, Font font, float x, float y, Color color,
                 Align align) {
-  const Entry* e = entry(text, size, weight);
+  const Entry* e = entry(text, size, font);
   if (!e) {
     return;
   }
@@ -97,9 +124,9 @@ void Text::draw(const std::string& text, int size, Weight weight, float x, float
   SDL_RenderCopyF(renderer_, e->texture, nullptr, &dst);
 }
 
-void Text::drawVertical(const std::string& text, int size, Weight weight, float cx, float cy,
+void Text::drawVertical(const std::string& text, int size, Font font, float cx, float cy,
                         Color color) {
-  const Entry* e = entry(text, size, weight);
+  const Entry* e = entry(text, size, font);
   if (!e) {
     return;
   }

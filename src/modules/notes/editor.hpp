@@ -64,8 +64,8 @@ private:
   PreviewLayout preview_;
   bool previewStale_ = true;
   float previewScroll_ = 0.f;
-  SDL_FRect previewOrigin_{};
-  float previewViewH_ = 0.f;
+  // where the preview was last drawn, for scrolling and checkbox taps.
+  SDL_FRect previewView_{};
 
   Menu lineMenu_;
   TextPrompt prompt_;
