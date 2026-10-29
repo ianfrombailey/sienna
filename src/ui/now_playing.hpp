@@ -11,6 +11,7 @@ namespace sienna {
 // what the music player is doing, shown on the dashboard. filled in by the music module.
 struct NowPlaying {
   bool active = false;
+  bool playing = false;
   std::string title;
   std::string artist;
   float progress = 0.f;  // 0-1
