@@ -137,7 +137,8 @@ KeyboardStatus pollKeyboard(std::string& result) {
   sceImeDialogGetResult(&res);
   sceImeDialogTerm();
   gKeyboardOpen = false;
-  if (res.button != SCE_IME_DIALOG_BUTTON_ENTER) {
+  // in multiline mode enter types a newline, so closing the keyboard is how text is confirmed.
+  if (res.button != SCE_IME_DIALOG_BUTTON_ENTER && res.button != SCE_IME_DIALOG_BUTTON_CLOSE) {
     return KeyboardStatus::Cancelled;
   }
   result = fromUtf16(gInput);
