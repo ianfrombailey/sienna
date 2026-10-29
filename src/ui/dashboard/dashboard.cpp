@@ -63,6 +63,10 @@ float Dashboard::targetX(std::size_t i) const {
 }
 
 void Dashboard::update(Input& input, float dt) {
+  for (Blade& b : blades_) {
+    b.section->tick(dt);
+  }
+
   if (open_) {
     if (input.pressed(Button::Start)) {
       open_ = false;
@@ -150,7 +154,7 @@ void Dashboard::drawBlade(gfx::Gfx& g, std::size_t i) {
   blade.section->draw(g, area, openAmount_ > 0.5f);
 
   const NowPlaying& np = nowPlaying();
-  if (np.active && openAmount_ < 1.f) {
+  if (np.active && openAmount_ < 1.f && blade.section->showsNowPlayingBar()) {
     drawNowPlayingBar(g, {area.x + 24.f, kH - 72.f, area.w - 48.f, 48.f}, np, 1.f - openAmount_);
   }
 }
